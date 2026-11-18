@@ -31,6 +31,13 @@ def immediate_transaction(db):
 station_transaction = immediate_transaction
 
 
+def ensure_columns(db, table, columns):
+    existing = {row['name'] for row in db.execute(f'PRAGMA table_info({table})')}
+    for name, definition in columns.items():
+        if name not in existing:
+            db.execute(f'ALTER TABLE {table} ADD COLUMN {name} {definition}')
+
+
 def initialize_station(db):
     db.executescript('''
         CREATE TABLE IF NOT EXISTS stations (
@@ -52,7 +59,16 @@ def initialize_station(db):
             report_unit TEXT NOT NULL,
             scale TEXT NOT NULL,
             offset TEXT NOT NULL,
+            reference_id TEXT,
+            error_radius TEXT,
+            error_coefficient TEXT,
             FOREIGN KEY(station, channel) REFERENCES channels(station, channel)
+        );
+        CREATE TABLE IF NOT EXISTS reference_definitions (
+            station TEXT NOT NULL REFERENCES stations(station),
+            reference_id TEXT NOT NULL,
+            radius TEXT NOT NULL,
+            PRIMARY KEY(station, reference_id)
         );
         CREATE TABLE IF NOT EXISTS day_revisions (
             revision_id TEXT PRIMARY KEY,
@@ -78,3 +94,8 @@ def initialize_station(db):
                 REFERENCES revision_calibrations(revision_id, channel)
         );
     ''')
+    ensure_columns(db, 'calibrations', {
+        'reference_id': 'TEXT',
+        'error_radius': 'TEXT',
+        'error_coefficient': 'TEXT',
+    })

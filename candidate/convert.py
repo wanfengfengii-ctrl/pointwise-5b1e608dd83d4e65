@@ -17,6 +17,9 @@ class ConvertedRow:
     report_unit: str
     scale: Fraction
     offset: Fraction
+    reference_id: str | None = None
+    error_radius: Fraction | None = None
+    error_coefficient: Fraction | None = None
 
 
 def convert_sample(sample: RawSample, calibration: CalibrationRevision):
@@ -29,4 +32,5 @@ def convert_sample(sample: RawSample, calibration: CalibrationRevision):
     return ConvertedRow(
         sample.position, sample.sample_id, sample.channel, raw, value,
         calibration.calibration_id, calibration.input_unit, calibration.report_unit, scale, offset,
+        calibration.reference_id, calibration.error_radius, calibration.error_coefficient,
     )

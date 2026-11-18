@@ -45,6 +45,7 @@ def freeze_snapshot(candidate_id, station, day, revision_id, rows, *, corrects=N
     seen = set()
     channels = {}
     calibration_channels = {}
+    references = {}
     for position, row in enumerate(frozen):
         require_name(row.sample_id)
         require_name(row.channel)
@@ -57,11 +58,17 @@ def freeze_snapshot(candidate_id, station, day, revision_id, rows, *, corrects=N
         calibration = CalibrationRevision(
             row.calibration_id, station, row.channel, row.input_unit, row.report_unit,
             exact_number(row.scale), exact_number(row.offset),
+            row.reference_id, optional_number(row.error_radius),
+            optional_number(row.error_coefficient),
         )
         if channels.setdefault(row.channel, calibration) != calibration:
             raise ValueError('frozen rows have inconsistent calibration for a channel')
         if calibration_channels.setdefault(row.calibration_id, row.channel) != row.channel:
             raise ValueError('frozen calibration is referenced by different channels')
+        if calibration.reference_id is not None and references.setdefault(
+            calibration.reference_id, calibration.error_radius
+        ) != calibration.error_radius:
+            raise ValueError('frozen rows have inconsistent reference definitions')
         sample = RawSample(position, row.sample_id, row.channel, row.raw)
         if convert_sample(sample, calibration) != row:
             raise ValueError(f'frozen conversion differs for sample {row.sample_id}')
@@ -72,8 +79,11 @@ def encode_snapshot(snapshot):
     payload = asdict(snapshot)
     rows = payload['rows']
     for row in rows:
-        for field in ('raw', 'value', 'scale', 'offset'):
+        for field in ('raw', 'value', 'scale', 'offset', 'error_radius', 'error_coefficient'):
             row[field] = encode_number(row[field])
+        if row['reference_id'] is None:
+            for field in ('reference_id', 'error_radius', 'error_coefficient'):
+                del row[field]
     return canonical_json(payload)
 
 
@@ -88,6 +98,9 @@ def decode_snapshot(encoded):
             fields[field] = optional_number(fields[field])
         for field in ('scale', 'offset'):
             fields[field] = exact_number(fields[field])
+        fields['reference_id'] = fields.get('reference_id')
+        fields['error_radius'] = optional_number(fields.get('error_radius'))
+        fields['error_coefficient'] = optional_number(fields.get('error_coefficient'))
         rows.append(ConvertedRow(**fields))
     snapshot = freeze_snapshot(
         payload['candidate_id'], payload['station'], payload['day'], payload['revision_id'], rows,

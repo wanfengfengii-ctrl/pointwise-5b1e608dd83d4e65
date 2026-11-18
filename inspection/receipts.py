@@ -1,4 +1,5 @@
 from dataclasses import asdict, dataclass
+from hashlib import sha256
 import json
 
 from candidate.snapshot import canonical_json, snapshot_digest
@@ -42,10 +43,24 @@ def evaluate_check(snapshot, standard):
 
 def encode_check_receipt(receipt):
     payload = asdict(receipt)
+    standard = payload['standard']
     for field in ('reference', 'lower', 'upper'):
-        payload['standard'][field] = encode_number(payload['standard'][field])
-    payload['finding']['value'] = encode_number(payload['finding']['value'])
+        standard[field] = encode_number(standard[field])
+    if standard['low_trial'] is None:
+        del standard['low_trial']
+    finding = payload['finding']
+    finding['value'] = encode_number(finding['value'])
+    if finding['low_position'] is None:
+        del finding['low_position']
+    if finding['interval'] is None:
+        del finding['interval']
+    else:
+        finding['interval'] = [encode_number(endpoint) for endpoint in finding['interval']]
     return canonical_json(payload)
+
+
+def check_receipt_digest(receipt):
+    return sha256(encode_check_receipt(receipt).encode('utf-8')).hexdigest()
 
 
 def decode_check_receipt(encoded):

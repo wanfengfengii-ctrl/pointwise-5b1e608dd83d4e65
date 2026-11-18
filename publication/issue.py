@@ -14,5 +14,8 @@ def issue_if_eligible(db, snapshot):
     receipts = load_passing_evidence(db, snapshot.candidate_id)
     if receipts.keys() != {'zero', 'span'}:
         return None, False
-    signed = append_issue(db, snapshot, receipts['zero'].receipt_id, receipts['span'].receipt_id)
+    span = receipts['span']
+    evidence = span if span.standard.low_trial is not None else None
+    signed = append_issue(db, snapshot, receipts['zero'].receipt_id, span.receipt_id,
+                          span_evidence=evidence)
     return signed, True

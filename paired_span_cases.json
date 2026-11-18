@@ -1,0 +1,18 @@
+{
+  "high_channel": "displacement",
+  "low_channel": "low-displacement",
+  "samples": [["span-low", "low-displacement", 0], ["zero-trial", "displacement", 0], ["span-trial", "displacement", 3]],
+  "scale": "1/2",
+  "offset": "1/4",
+  "standard_reference": "3/2",
+  "allowed": ["3/2", "7/4"],
+  "expected_nominal": "3/2",
+  "expected_positions": {"high": 2, "low": 0},
+  "cases": [
+    {"id": "shared", "high_error": ["E", "1/4", 1], "low_error": ["E", "1/4", 1], "interval": ["3/2", "3/2"], "passed": true},
+    {"id": "independent", "high_error": ["E", "1/4", 1], "low_error": ["F", "1/4", 1], "interval": ["1", "2"], "passed": false},
+    {"id": "partial", "high_error": ["E", "1/4", 1], "low_error": ["E", "1/4", "1/2"], "interval": ["11/8", "13/8"], "passed": false},
+    {"id": "opposite", "high_error": ["E", "1/4", 1], "low_error": ["E", "1/4", -1], "interval": ["1", "2"], "passed": false},
+    {"id": "exact", "high_error": null, "low_error": null, "interval": ["3/2", "3/2"], "passed": true}
+  ]
+}
